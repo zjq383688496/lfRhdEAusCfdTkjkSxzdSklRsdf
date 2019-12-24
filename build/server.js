@@ -1,66 +1,42 @@
 'use strict';
 
-const utils = require('./utils')
-const webpack = require('webpack')
-const config = require('../config')
-const nodeExternals = require('webpack-node-externals')
-const MiniCssExtractPlugin = require('mini-css-extract-plugin')
-const SSRServerPlugin = require('./plugins/server-plugin')
+'use strict';
 
-module.exports = {
+const webpack = require('webpack')
+const base    = require('./base')
+const cfg     = require('./cfg')
+const rules   = require('./rules').server
+const config  = require('../config')('server')
+const nodeExternals        = require('webpack-node-externals')
+const MiniCssExtractPlugin = require('mini-css-extract-plugin')
+
+const Config = Object.assign({}, base, {
+	entry: cfg.resolve('src/index-server.js'),
 	mode: 'production',
-	entry: {
-		app: utils.resolve('server/index.js')
-	},
-	output: {
-		path: config.build.assetsRoot,
-		filename: 'entry-server.js',
-		libraryTarget: 'commonjs2'
-	},
-	target: 'node', // 指定node运行环境
-	devtool: config.server.devtool,
+	target: 'node',
+	devtool: config.devtool,
 	externals: [
 		nodeExternals({
-			whitelist: [ /\.(css|sass)$/ ]	// 忽略css，让webpack处理
+			whitelist: [ /\.(css|less)$/ ] // 忽略css，让webpack处理
 		})
 	],
+	output: {
+		path:          config.pathRoot,
+		filename:      'index-server.js',
+		libraryTarget: 'commonjs2'
+	},
 	module: {
-		rules: [
-			{
-				test: /\.jsx?$/,
-				use: [
-					{
-						loader: 'babel-loader',
-						options: {
-							babelrc: false,
-							presets: ['@babel/preset-env', '@babel/preset-react'],
-							plugins: [
-								'dynamic-import-node',
-								'@loadable/babel-plugin'
-							]
-						}
-					}
-				],
-				exclude: /node_modules/
-			},
-			...utils.styleLoaders({
-				sourceMap: config.build.productionSourceMap,
-				extract: true,
-				usePostCSS: true
-			})
-		]
+		rules
 	},
 	plugins: [
 		new webpack.DefinePlugin({
-			'process.env': config.server.env
+			ENV: config.env
 		}),
 		new MiniCssExtractPlugin({
-			filename: utils.assetsPath('css/[name].[contenthash].css')
-		}),
-		// 这是将服务器的整个输出
-		// 构建为单个 JSON 文件的插件
-		new SSRServerPlugin({
-			filename: 'server-bundle.json'
+			filename: cfg.assets('css/[name].[hash:8].css')
 		})
 	]
-}
+})
+
+
+module.exports = Config
